@@ -1,0 +1,9 @@
+GET http://localhost:3000/health
+
+###
+
+GET http://localhost:3000/recent-tracks
+
+###
+
+GET http://localhost:3000/now-playing
