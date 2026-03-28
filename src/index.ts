@@ -13,6 +13,7 @@ dotenv.config();
 const app = express();
 app.use(helmet());
 app.set("trust proxy", 1);
+app.use(express.static("public"));
 const port = Number(process.env.PORT) || 3000;
 const lastfmApiKey = process.env.LASTFM_API_KEY;
 const lastfmUsername = process.env.LASTFM_USERNAME;
