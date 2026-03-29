@@ -1,9 +1,13 @@
 const tokenInput = document.getElementById("token");
 const loadButton = document.getElementById("load");
+const copyCurrentButton = document.getElementById("copyCurrent");
 const copyButton = document.getElementById("copy");
+const copyStatusEl = document.getElementById("copyStatus");
 const statusEl = document.getElementById("status");
 const currentTrackEl = document.getElementById("currentTrack");
 const recentTracksEl = document.getElementById("recentTracks");
+
+const RECENT_PREVIOUS_TRACKS_LIMIT = 10;
 
 const savedToken = localStorage.getItem("trackcontext.token");
 if (savedToken) {
@@ -15,6 +19,10 @@ let previousTracks = [];
 
 function setStatus(message) {
   statusEl.textContent = message;
+}
+
+function setCopyStatus(message) {
+  copyStatusEl.textContent = message;
 }
 
 function makeAuthHeaders(token) {
@@ -73,17 +81,42 @@ function render() {
     }
   }
 
+  copyCurrentButton.disabled = !currentTrack;
   copyButton.disabled = !currentTrack;
+  if (!currentTrack) {
+    setCopyStatus("");
+  }
+}
+
+function currentTrackPromptLine(track) {
+  return `"${track.track}" by ${track.artist} from "${track.album || "Unknown album"}"`;
+}
+
+function buildCurrentTrackCopyText() {
+  const lines = [];
+  lines.push("Use this music context in the conversation if it is relevant.");
+  lines.push("");
+  lines.push("Current track:");
+  lines.push(`- Title: ${currentTrack.track}`);
+  lines.push(`- Artist: ${currentTrack.artist}`);
+  lines.push(`- Album: ${currentTrack.album || "Unknown album"}`);
+  lines.push(`- Playback status: ${currentTrack.isNowPlaying ? "Now playing" : "Recently played"}`);
+  lines.push("");
+  lines.push(`Short form: ${currentTrackPromptLine(currentTrack)}`);
+  return lines.join("\n");
 }
 
 function buildCopyText() {
   const lines = [];
-  lines.push("Current Track:");
+  lines.push("Use this music context in the conversation if it is relevant.");
+  lines.push("");
+  lines.push("Current track:");
   lines.push(`- Track: ${currentTrack.track}`);
   lines.push(`- Artist: ${currentTrack.artist}`);
   lines.push(`- Album: ${currentTrack.album || "Unknown album"}`);
+  lines.push(`- Playback status: ${currentTrack.isNowPlaying ? "Now playing" : "Recently played"}`);
   lines.push("");
-  lines.push("Recent Listening History:");
+  lines.push("Recent listening history:");
 
   if (previousTracks.length === 0) {
     lines.push("- None");
@@ -104,7 +137,9 @@ async function loadTracks() {
   }
 
   loadButton.disabled = true;
+  copyCurrentButton.disabled = true;
   copyButton.disabled = true;
+  setCopyStatus("");
   setStatus("Loading...");
 
   try {
@@ -124,7 +159,7 @@ async function loadTracks() {
           && track.artist === currentTrack.artist
           && track.album === currentTrack.album);
       })
-      .slice(0, 5);
+      .slice(0, RECENT_PREVIOUS_TRACKS_LIMIT);
 
     render();
     setStatus("Loaded.");
@@ -150,8 +185,22 @@ copyButton.addEventListener("click", async () => {
   const text = buildCopyText();
   try {
     await navigator.clipboard.writeText(text);
-    setStatus("Copied for ChatGPT.");
+    setCopyStatus("Copied full listening context.");
   } catch {
-    setStatus("Copy failed. Your browser may block clipboard access.");
+    setCopyStatus("Copy failed. Your browser may block clipboard access.");
+  }
+});
+
+copyCurrentButton.addEventListener("click", async () => {
+  if (!currentTrack) {
+    return;
+  }
+
+  const text = buildCurrentTrackCopyText();
+  try {
+    await navigator.clipboard.writeText(text);
+    setCopyStatus("Copied current track context.");
+  } catch {
+    setCopyStatus("Copy failed. Your browser may block clipboard access.");
   }
 });

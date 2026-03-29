@@ -33,6 +33,12 @@ h1 {
   margin-top: 8px;
 }
 
+.button-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 input {
   flex: 1;
   padding: 10px;
@@ -57,6 +63,10 @@ button:disabled {
 .status {
   margin-bottom: 0;
   color: #334155;
+}
+
+.copy-status {
+  margin-top: 10px;
 }
 
 .track-card {

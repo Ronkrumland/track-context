@@ -30,7 +30,11 @@
       </section>
 
       <section class="panel">
-        <button id="copy" type="button" disabled>Copy for ChatGPT</button>
+        <div class="button-row">
+          <button id="copyCurrent" type="button" disabled>Copy Current Track</button>
+          <button id="copy" type="button" disabled>Copy Full Context</button>
+        </div>
+        <p id="copyStatus" class="status copy-status" aria-live="polite"></p>
       </section>
     </main>
 
