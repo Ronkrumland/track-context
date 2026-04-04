@@ -7,6 +7,7 @@ import {
   getRecentTracks,
   LastfmApiError,
 } from "./services/lastfm.js";
+import { displayRouter } from "./display/display.router.js";
 
 dotenv.config();
 
@@ -20,11 +21,17 @@ const lastfmUsername = process.env.LASTFM_USERNAME;
 const apiAuthToken = process.env.API_AUTH_TOKEN;
 
 if (!lastfmApiKey || !lastfmUsername || !apiAuthToken) {
-  console.error("Invalid configuration: LASTFM_API_KEY, LASTFM_USERNAME, and API_AUTH_TOKEN are required.");
+  console.error(
+    "Invalid configuration: LASTFM_API_KEY, LASTFM_USERNAME, and API_AUTH_TOKEN are required.",
+  );
   process.exit(1);
 }
 
-function handleServerError(context: string, error: unknown, res: express.Response): void {
+function handleServerError(
+  context: string,
+  error: unknown,
+  res: express.Response,
+): void {
   if (error instanceof LastfmApiError) {
     console.error(`[${context}] Last.fm API error`, {
       message: error.message,
@@ -70,6 +77,7 @@ const apiRateLimiter = rateLimit({
 });
 
 app.use(apiRateLimiter);
+app.use("/display", displayRouter);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
@@ -91,7 +99,10 @@ app.get("/recent-tracks", async (_req, res) => {
 
 app.get("/now-playing", async (_req, res) => {
   try {
-    const track = await getNowPlayingOrRecentTrack(lastfmApiKey, lastfmUsername);
+    const track = await getNowPlayingOrRecentTrack(
+      lastfmApiKey,
+      lastfmUsername,
+    );
     if (!track) {
       res.status(404).json({ error: "No tracks found" });
       return;
