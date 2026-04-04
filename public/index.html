@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrackContext</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>TrackContext</h1>
+
+      <section class="panel">
+        <label for="token">Bearer token</label>
+        <div class="row">
+          <input id="token" type="password" placeholder="Paste API token" autocomplete="off" />
+          <button id="load" type="button">Load Tracks</button>
+        </div>
+        <p id="status" class="status">Enter a token and click Load Tracks.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Current Track</h2>
+        <div id="currentTrack" class="track-card">No data loaded yet.</div>
+      </section>
+
+      <section class="panel">
+        <h2>Recent Previous Tracks</h2>
+        <ul id="recentTracks" class="track-list"></ul>
+      </section>
+
+      <section class="panel">
+        <div class="button-row">
+          <button id="copyCurrent" type="button" disabled>Copy Current Track</button>
+          <button id="copy" type="button" disabled>Copy Full Context</button>
+        </div>
+        <p id="copyStatus" class="status copy-status" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>

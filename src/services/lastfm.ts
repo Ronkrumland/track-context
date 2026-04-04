@@ -6,6 +6,10 @@ export type TrackItem = {
   playedAt: string | null;
 };
 
+// TODO: Make this configurable via environment variable or function parameter.
+const RECENT_TRACKS_LIMIT = 10;
+const LAST_FM_URL = "https://ws.audioscrobbler.com/2.0/";
+
 export class LastfmApiError extends Error {
   constructor(
     message: string,
@@ -30,8 +34,12 @@ type LastfmRecentTracksResponse = {
   };
 };
 
-async function fetchRecentTracks(apiKey: string, username: string, limit: number): Promise<TrackItem[]> {
-  const url = new URL("https://ws.audioscrobbler.com/2.0/");
+async function fetchRecentTracks(
+  apiKey: string,
+  username: string,
+  limit: number,
+): Promise<TrackItem[]> {
+  const url = new URL(LAST_FM_URL);
   url.search = new URLSearchParams({
     method: "user.getrecenttracks",
     user: username,
@@ -42,6 +50,7 @@ async function fetchRecentTracks(apiKey: string, username: string, limit: number
 
   const response = await fetch(url);
   if (!response.ok) {
+    // Cap the captured error body so thrown errors do not balloon with large responses.
     const responseBody = (await response.text()).slice(0, 1000);
     throw new LastfmApiError(
       "Last.fm request failed",
@@ -55,9 +64,15 @@ async function fetchRecentTracks(apiKey: string, username: string, limit: number
   const tracks = data.recenttracks?.track ?? [];
 
   return tracks.map((item) => {
-    const playedAt = item.date?.uts
-      ? new Date(Number(item.date.uts) * 1000).toISOString()
-      : null;
+    let playedAt: string | null = null;
+
+    if (item.date?.uts != null) {
+      const unixTimestampSeconds = Number(item.date.uts);
+
+      if (Number.isFinite(unixTimestampSeconds)) {
+        playedAt = new Date(unixTimestampSeconds * 1000).toISOString();
+      }
+    }
 
     return {
       track: item.name ?? "",
@@ -69,11 +84,19 @@ async function fetchRecentTracks(apiKey: string, username: string, limit: number
   });
 }
 
-export async function getRecentTracks(apiKey: string, username: string): Promise<TrackItem[]> {
-  return fetchRecentTracks(apiKey, username, 5);
+export async function getRecentTracks(
+  apiKey: string,
+  username: string,
+): Promise<TrackItem[]> {
+  // Fetch one extra because Last.fm includes the current "now playing" track
+  // in the recent tracks response, and we still want up to the configured limit.
+  return fetchRecentTracks(apiKey, username, RECENT_TRACKS_LIMIT + 1);
 }
 
-export async function getNowPlayingOrRecentTrack(apiKey: string, username: string): Promise<TrackItem | null> {
+export async function getNowPlayingOrRecentTrack(
+  apiKey: string,
+  username: string,
+): Promise<TrackItem | null> {
   const tracks = await fetchRecentTracks(apiKey, username, 5);
   if (tracks.length === 0) {
     return null;
