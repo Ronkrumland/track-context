@@ -1,4 +1,13 @@
-export type NowPlayingResponseDto = {
+export type QueuedTrack = {
+  trackTitle: string;
+  artistName: string;
+  albumName: string;
+  albumArtUrl: string;
+  durationSeconds: number;
+  trackUrl: string | null;
+};
+
+export type NowPlayingResponse = {
   trackTitle: string;
   artistName: string;
   albumName: string;
@@ -10,4 +19,5 @@ export type NowPlayingResponseDto = {
   isControllable: boolean;
   trackUrl: string | null;
   lastUpdatedAt: string;
+  playingNext: QueuedTrack | null;
 };

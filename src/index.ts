@@ -12,7 +12,36 @@ import { displayRouter } from "./display/display.router.js";
 dotenv.config();
 
 const app = express();
+const allowedCorsOriginEnv = process.env.ALLOWED_CORS_ORIGIN;
+let allowedCorsOrigin: string | undefined;
+
+if (allowedCorsOriginEnv) {
+  allowedCorsOrigin = allowedCorsOriginEnv.replace(/\/$/, "");
+}
+
 app.use(helmet());
+app.use((req, res, next) => {
+  const origin = req.header("origin");
+
+  if (origin === allowedCorsOrigin) {
+    res.header("Access-Control-Allow-Origin", allowedCorsOrigin);
+    res.header("Vary", "Origin");
+    res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.header("Access-Control-Allow-Methods", "GET,OPTIONS");
+  }
+
+  if (req.method === "OPTIONS") {
+    if (origin === allowedCorsOrigin) {
+      res.sendStatus(204);
+      return;
+    }
+
+    res.sendStatus(403);
+    return;
+  }
+
+  next();
+});
 app.set("trust proxy", 1);
 app.use(express.static("public"));
 const port = Number(process.env.PORT) || 3000;
@@ -20,9 +49,9 @@ const lastfmApiKey = process.env.LASTFM_API_KEY;
 const lastfmUsername = process.env.LASTFM_USERNAME;
 const apiAuthToken = process.env.API_AUTH_TOKEN;
 
-if (!lastfmApiKey || !lastfmUsername || !apiAuthToken) {
+if (!lastfmApiKey || !lastfmUsername || !apiAuthToken || !allowedCorsOrigin) {
   console.error(
-    "Invalid configuration: LASTFM_API_KEY, LASTFM_USERNAME, and API_AUTH_TOKEN are required.",
+    "Invalid configuration: LASTFM_API_KEY, LASTFM_USERNAME, API_AUTH_TOKEN, and ALLOWED_CORS_ORIGIN are required.",
   );
   process.exit(1);
 }
@@ -119,4 +148,5 @@ app.listen(port, () => {
   console.log(`LASTFM_API_KEY configured: ${Boolean(lastfmApiKey)}`);
   console.log(`LASTFM_USERNAME configured: ${Boolean(lastfmUsername)}`);
   console.log(`API_AUTH_TOKEN configured: ${Boolean(apiAuthToken)}`);
+  console.log(`ALLOWED_CORS_ORIGIN configured: ${Boolean(allowedCorsOrigin)}`);
 });
