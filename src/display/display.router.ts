@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { getNowPlaying } from "./display.service.js";
-import type { NowPlayingResponseDto } from "./display.types.js";
+import type { NowPlayingResponse } from "./display.types.js";
 
 const displayRouter = Router();
 
 displayRouter.get("/now-playing", (_req, res) => {
-  const response: NowPlayingResponseDto = getNowPlaying();
+  const response: NowPlayingResponse = getNowPlaying();
   res.json(response);
 });
 
