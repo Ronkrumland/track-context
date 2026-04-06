@@ -21,3 +21,20 @@ export type NowPlayingResponse = {
   lastUpdatedAt: string;
   playingNext: QueuedTrack | null;
 };
+
+export type DeviceInfo = {
+  id: string;
+  name: string;
+  type: string;
+  isActive: boolean;
+  volumePercent: number | null;
+};
+
+export type DevicesResponse = {
+  devices: DeviceInfo[];
+};
+
+export type QueueResponse = {
+  currentlyPlaying: QueuedTrack | null;
+  queue: QueuedTrack[];
+};
