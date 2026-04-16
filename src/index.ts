@@ -18,26 +18,37 @@ import { displayRouter } from "./display/display.router.js";
 dotenv.config();
 
 const app = express();
-const allowedCorsOriginEnv = process.env.ALLOWED_CORS_ORIGIN;
-let allowedCorsOrigin: string | undefined;
+const allowedCorsOriginsEnv =
+  process.env.ALLOWED_CORS_ORIGINS ?? process.env.ALLOWED_CORS_ORIGIN;
 
-if (allowedCorsOriginEnv) {
-  allowedCorsOrigin = allowedCorsOriginEnv.replace(/\/$/, "");
+function parseAllowedCorsOrigins(value: string | undefined): Set<string> {
+  if (!value) {
+    return new Set();
+  }
+
+  return new Set(
+    value
+      .split(",")
+      .map((origin) => origin.trim().replace(/\/$/, ""))
+      .filter(Boolean),
+  );
 }
+
+const allowedCorsOrigins = parseAllowedCorsOrigins(allowedCorsOriginsEnv);
 
 app.use(helmet());
 app.use((req, res, next) => {
-  const origin = req.header("origin");
+  const origin = req.header("origin")?.replace(/\/$/, "");
 
-  if (origin === allowedCorsOrigin) {
-    res.header("Access-Control-Allow-Origin", allowedCorsOrigin);
+  if (origin && allowedCorsOrigins.has(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
     res.header("Vary", "Origin");
     res.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
     res.header("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS");
   }
 
   if (req.method === "OPTIONS") {
-    if (origin === allowedCorsOrigin) {
+    if (origin && allowedCorsOrigins.has(origin)) {
       res.sendStatus(204);
       return;
     }
@@ -60,16 +71,18 @@ const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI;
 
 if (
+  
   !lastfmApiKey ||
   !lastfmUsername ||
   !apiAuthToken ||
-  !allowedCorsOrigin ||
+  allowedCorsOrigins.size === 0 ||
   !spotifyClientId ||
   !spotifyClientSecret ||
-  !spotifyRedirectUri
+  !spotifyRedirectUri ||
+  allowedCorsOrigins.size === 0
 ) {
   console.error(
-    "Invalid configuration: LASTFM_API_KEY, LASTFM_USERNAME, API_AUTH_TOKEN, ALLOWED_CORS_ORIGIN, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REDIRECT_URI are required.",
+    "Invalid configuration: LASTFM_API_KEY, LASTFM_USERNAME, API_AUTH_TOKEN, ALLOWED_CORS_ORIGINS, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REDIRECT_URI are required.",
   );
   process.exit(1);
 }
@@ -215,7 +228,7 @@ app.listen(port, () => {
   console.log(`LASTFM_API_KEY configured: ${Boolean(lastfmApiKey)}`);
   console.log(`LASTFM_USERNAME configured: ${Boolean(lastfmUsername)}`);
   console.log(`API_AUTH_TOKEN configured: ${Boolean(apiAuthToken)}`);
-  console.log(`ALLOWED_CORS_ORIGIN configured: ${Boolean(allowedCorsOrigin)}`);
+  console.log(`ALLOWED_CORS_ORIGINS configured: ${allowedCorsOrigins.size}`);
   console.log(`SPOTIFY_CLIENT_ID configured: ${Boolean(spotifyClientId)}`);
   console.log(
     `SPOTIFY_CLIENT_SECRET configured: ${Boolean(spotifyClientSecret)}`,
