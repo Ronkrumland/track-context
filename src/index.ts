@@ -26,12 +26,29 @@ function parseAllowedCorsOrigins(value: string | undefined): Set<string> {
     return new Set();
   }
 
-  return new Set(
+  const origins = new Set(
     value
       .split(",")
       .map((origin) => origin.trim().replace(/\/$/, ""))
       .filter(Boolean),
   );
+
+  for (const origin of [...origins]) {
+    try {
+      const url = new URL(origin);
+      if (url.hostname === "localhost") {
+        url.hostname = "127.0.0.1";
+        origins.add(url.toString().replace(/\/$/, ""));
+      } else if (url.hostname === "127.0.0.1") {
+        url.hostname = "localhost";
+        origins.add(url.toString().replace(/\/$/, ""));
+      }
+    } catch {
+      // Ignore malformed origins so the explicit config check can fail normally.
+    }
+  }
+
+  return origins;
 }
 
 const allowedCorsOrigins = parseAllowedCorsOrigins(allowedCorsOriginsEnv);
@@ -127,6 +144,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/auth/check", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 60,
@@ -146,6 +167,11 @@ app.get("/health", (_req, res) => {
 app.get("/auth/spotify/login", (_req, res) => {
   const authUrl = generateAuthUrl(spotifyClientId, spotifyRedirectUri);
   res.redirect(authUrl);
+});
+
+app.get("/auth/spotify/login-url", (_req, res) => {
+  const authUrl = generateAuthUrl(spotifyClientId, spotifyRedirectUri);
+  res.json({ url: authUrl });
 });
 
 app.get("/auth/spotify/callback", async (req, res) => {

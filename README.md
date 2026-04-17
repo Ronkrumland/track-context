@@ -8,3 +8,19 @@ value in `.env`, for example:
 ```env
 ALLOWED_CORS_ORIGINS=http://localhost:5173,https://example.com
 ```
+
+## Spotify token persistence
+
+Spotify OAuth tokens are stored in a JSON file so the API can survive restarts
+without requiring a fresh Spotify authorization.
+
+On Railway, attach a volume to the API service at `/app/data`. Railway provides
+`RAILWAY_VOLUME_MOUNT_PATH`, and the app will store tokens at:
+
+```txt
+$RAILWAY_VOLUME_MOUNT_PATH/spotify-token.json
+```
+
+Set `SPOTIFY_TOKEN_FILE` only if you want to override that location. For local
+development, the fallback path is `data/spotify-token.json`, which is ignored by
+git.

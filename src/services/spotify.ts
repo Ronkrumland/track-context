@@ -1,7 +1,10 @@
 import { randomUUID } from "crypto";
+import { mkdir, readFile, rename, writeFile } from "fs/promises";
+import { dirname, resolve } from "path";
 
 const SPOTIFY_API_BASE = "https://api.spotify.com/v1";
 const SPOTIFY_ACCOUNTS_BASE = "https://accounts.spotify.com";
+const DEFAULT_TOKEN_FILE = "data/spotify-token.json";
 
 // Minimum scopes required for display API features
 export const SPOTIFY_SCOPES = [
@@ -99,6 +102,90 @@ type TokenState = {
 
 let tokenState: TokenState | null = null;
 let pendingOAuthState: string | null = null;
+let hasLoadedTokenState = false;
+
+function getTokenFilePath(): string {
+  if (process.env.SPOTIFY_TOKEN_FILE?.trim()) {
+    return resolve(process.env.SPOTIFY_TOKEN_FILE);
+  }
+
+  if (process.env.RAILWAY_VOLUME_MOUNT_PATH?.trim()) {
+    return resolve(
+      process.env.RAILWAY_VOLUME_MOUNT_PATH,
+      "spotify-token.json",
+    );
+  }
+
+  return resolve(DEFAULT_TOKEN_FILE);
+}
+
+function parseTokenState(value: unknown): TokenState | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const maybeTokenState = value as Partial<TokenState>;
+  if (typeof maybeTokenState.refreshToken !== "string") {
+    return null;
+  }
+
+  return {
+    accessToken:
+      typeof maybeTokenState.accessToken === "string"
+        ? maybeTokenState.accessToken
+        : "",
+    refreshToken: maybeTokenState.refreshToken,
+    expiresAt:
+      typeof maybeTokenState.expiresAt === "number"
+        ? maybeTokenState.expiresAt
+        : 0,
+  };
+}
+
+async function loadTokenStateFromFile(): Promise<void> {
+  if (tokenState || hasLoadedTokenState) {
+    return;
+  }
+
+  hasLoadedTokenState = true;
+  const tokenFile = getTokenFilePath();
+
+  try {
+    const json = await readFile(tokenFile, "utf8");
+    tokenState = parseTokenState(JSON.parse(json));
+    if (!tokenState) {
+      console.warn(`Spotify token file is invalid: ${tokenFile}`);
+    }
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return;
+    }
+
+    console.warn(`Failed to read Spotify token file: ${tokenFile}`, error);
+  }
+}
+
+async function saveTokenStateToFile(): Promise<void> {
+  if (!tokenState) {
+    return;
+  }
+
+  const tokenFile = getTokenFilePath();
+  const tempFile = `${tokenFile}.${randomUUID()}.tmp`;
+
+  await mkdir(dirname(tokenFile), { recursive: true });
+  await writeFile(
+    tempFile,
+    `${JSON.stringify(tokenState, null, 2)}\n`,
+    "utf8",
+  );
+  await rename(tempFile, tokenFile);
+}
 
 export function isAuthorized(): boolean {
   return tokenState !== null;
@@ -158,12 +245,20 @@ export async function exchangeCodeForTokens(
   }
 
   const data = (await response.json()) as TokenResponse;
+  if (!data.refresh_token) {
+    throw new SpotifyApiError(
+      502,
+      "Spotify did not return a refresh token",
+      "",
+    );
+  }
 
   tokenState = {
     accessToken: data.access_token,
-    refreshToken: data.refresh_token!,
+    refreshToken: data.refresh_token,
     expiresAt: Date.now() + (data.expires_in - 60) * 1000,
   };
+  await saveTokenStateToFile();
 }
 
 async function refreshAccessToken(
@@ -204,12 +299,15 @@ async function refreshAccessToken(
     refreshToken: data.refresh_token ?? tokenState.refreshToken,
     expiresAt: Date.now() + (data.expires_in - 60) * 1000,
   };
+  await saveTokenStateToFile();
 }
 
 async function getValidAccessToken(
   clientId: string,
   clientSecret: string,
 ): Promise<string> {
+  await loadTokenStateFromFile();
+
   if (!tokenState) {
     throw new SpotifyApiError(
       401,

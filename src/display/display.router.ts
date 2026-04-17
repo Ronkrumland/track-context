@@ -27,7 +27,10 @@ function handleSpotifyError(
 ): void {
   if (error instanceof SpotifyApiError) {
     if (error.status === 401) {
-      res.status(401).json({ error: error.message });
+      res.status(401).json({
+        code: "spotify_auth_required",
+        error: error.message,
+      });
       return;
     }
     if (error.status === 403) {
