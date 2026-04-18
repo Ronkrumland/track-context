@@ -8,12 +8,10 @@ import {
   LastfmApiError,
 } from "./services/lastfm.js";
 import {
-  generateAuthUrl,
-  validateOAuthState,
-  exchangeCodeForTokens,
+  SpotifyAuthManager,
   SpotifyApiError,
 } from "./services/spotify.js";
-import { displayRouter } from "./display/display.router.js";
+import { createDisplayRouter } from "./display/display.router.js";
 
 dotenv.config();
 
@@ -88,21 +86,25 @@ const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI;
 
 if (
-  
   !lastfmApiKey ||
   !lastfmUsername ||
   !apiAuthToken ||
   allowedCorsOrigins.size === 0 ||
   !spotifyClientId ||
   !spotifyClientSecret ||
-  !spotifyRedirectUri ||
-  allowedCorsOrigins.size === 0
+  !spotifyRedirectUri
 ) {
   console.error(
     "Invalid configuration: LASTFM_API_KEY, LASTFM_USERNAME, API_AUTH_TOKEN, ALLOWED_CORS_ORIGINS, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REDIRECT_URI are required.",
   );
   process.exit(1);
 }
+
+const auth = new SpotifyAuthManager(
+  spotifyClientId,
+  spotifyClientSecret,
+  spotifyRedirectUri,
+);
 
 function handleServerError(
   context: string,
@@ -158,19 +160,19 @@ const apiRateLimiter = rateLimit({
 });
 
 app.use(apiRateLimiter);
-app.use("/display", displayRouter);
+app.use("/display", createDisplayRouter(auth));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
 app.get("/auth/spotify/login", (_req, res) => {
-  const authUrl = generateAuthUrl(spotifyClientId, spotifyRedirectUri);
+  const authUrl = auth.generateAuthUrl();
   res.redirect(authUrl);
 });
 
 app.get("/auth/spotify/login-url", (_req, res) => {
-  const authUrl = generateAuthUrl(spotifyClientId, spotifyRedirectUri);
+  const authUrl = auth.generateAuthUrl();
   res.json({ url: authUrl });
 });
 
@@ -191,18 +193,13 @@ app.get("/auth/spotify/callback", async (req, res) => {
     return;
   }
 
-  if (!validateOAuthState(state)) {
+  if (!auth.validateOAuthState(state)) {
     res.status(400).json({ error: "Invalid or expired state parameter" });
     return;
   }
 
   try {
-    await exchangeCodeForTokens(
-      code,
-      spotifyRedirectUri,
-      spotifyClientId,
-      spotifyClientSecret,
-    );
+    await auth.exchangeCodeForTokens(code);
     res.json({ status: "authorized" });
   } catch (err) {
     if (err instanceof SpotifyApiError) {
@@ -256,13 +253,10 @@ app.listen(port, () => {
   console.log(`API_AUTH_TOKEN configured: ${Boolean(apiAuthToken)}`);
   console.log(`ALLOWED_CORS_ORIGINS configured: ${allowedCorsOrigins.size}`);
   console.log(`SPOTIFY_CLIENT_ID configured: ${Boolean(spotifyClientId)}`);
-  console.log(
-    `SPOTIFY_CLIENT_SECRET configured: ${Boolean(spotifyClientSecret)}`,
-  );
-  console.log(
-    `SPOTIFY_REDIRECT_URI configured: ${Boolean(spotifyRedirectUri)}`,
-  );
-  console.log(
-    `Spotify OAuth: visit /auth/spotify/login (with Bearer token) to authorize`,
-  );
+  console.log(`SPOTIFY_CLIENT_SECRET configured: ${Boolean(spotifyClientSecret)}`);
+  console.log(`SPOTIFY_REDIRECT_URI configured: ${Boolean(spotifyRedirectUri)}`);
+});
+
+auth.initialize().catch((err) => {
+  console.error("Failed to initialize Spotify auth:", err);
 });

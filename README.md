@@ -6,8 +6,18 @@ Configure allowed CORS origins with a comma-separated `ALLOWED_CORS_ORIGINS`
 value in `.env`, for example:
 
 ```env
-ALLOWED_CORS_ORIGINS=http://localhost:5173,https://example.com
+ALLOWED_CORS_ORIGINS=http://127.0.0.1:5173,https://example.com
 ```
+
+For local Spotify OAuth, register this exact redirect URI in the Spotify
+developer dashboard:
+
+```txt
+http://127.0.0.1:3000/auth/spotify/callback
+```
+
+Spotify does not allow `localhost` redirect URIs. Use the explicit loopback IP
+address for local development, and make sure `SPOTIFY_REDIRECT_URI` matches it.
 
 ## Spotify token persistence
 

@@ -5,12 +5,7 @@ import type {
   DeviceInfo,
   QueueResponse,
 } from "./display.types.js";
-import {
-  getCurrentlyPlaying,
-  getDevices as spotifyGetDevices,
-  getQueue as spotifyGetQueue,
-  type SpotifyTrack,
-} from "../services/spotify.js";
+import type { SpotifyAuthManager, SpotifyTrack } from "../services/spotify.js";
 
 function mapSpotifyTrackToQueuedTrack(track: SpotifyTrack): QueuedTrack {
   return {
@@ -24,12 +19,11 @@ function mapSpotifyTrackToQueuedTrack(track: SpotifyTrack): QueuedTrack {
 }
 
 export async function getNowPlaying(
-  clientId: string,
-  clientSecret: string,
+  auth: SpotifyAuthManager,
 ): Promise<NowPlayingResponse | null> {
   const [playbackData, queueData] = await Promise.all([
-    getCurrentlyPlaying(clientId, clientSecret),
-    spotifyGetQueue(clientId, clientSecret).catch(() => null),
+    auth.getCurrentlyPlaying(),
+    auth.getQueue().catch(() => null),
   ]);
 
   if (!playbackData || !playbackData.item) {
@@ -58,10 +52,9 @@ export async function getNowPlaying(
 }
 
 export async function getAvailableDevices(
-  clientId: string,
-  clientSecret: string,
+  auth: SpotifyAuthManager,
 ): Promise<DevicesResponse> {
-  const data = await spotifyGetDevices(clientId, clientSecret);
+  const data = await auth.getDevices();
 
   const devices: DeviceInfo[] = data.devices
     .filter((d) => d.id !== null)
@@ -77,10 +70,9 @@ export async function getAvailableDevices(
 }
 
 export async function getPlaybackQueue(
-  clientId: string,
-  clientSecret: string,
+  auth: SpotifyAuthManager,
 ): Promise<QueueResponse> {
-  const data = await spotifyGetQueue(clientId, clientSecret);
+  const data = await auth.getQueue();
 
   return {
     currentlyPlaying: data.currently_playing
