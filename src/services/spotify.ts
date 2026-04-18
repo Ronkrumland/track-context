@@ -422,7 +422,7 @@ export class SpotifyAuthManager {
       body: JSON.stringify({ device_ids: [deviceId], play }),
     });
 
-    if (response.status !== 204) {
+    if (!response.ok) {
       const text = await response.text();
       throw new SpotifyApiError(
         response.status,
@@ -438,7 +438,7 @@ export class SpotifyAuthManager {
       : "/me/player/play";
     const response = await this.spotifyFetch(path, { method: "PUT" });
 
-    if (response.status !== 204) {
+    if (!response.ok) {
       const text = await response.text();
       throw new SpotifyApiError(
         response.status,
@@ -454,7 +454,7 @@ export class SpotifyAuthManager {
       : "/me/player/pause";
     const response = await this.spotifyFetch(path, { method: "PUT" });
 
-    if (response.status !== 204) {
+    if (!response.ok) {
       const text = await response.text();
       throw new SpotifyApiError(
         response.status,
@@ -470,7 +470,7 @@ export class SpotifyAuthManager {
       : "/me/player/next";
     const response = await this.spotifyFetch(path, { method: "POST" });
 
-    if (response.status !== 204) {
+    if (!response.ok) {
       const text = await response.text();
       throw new SpotifyApiError(
         response.status,
@@ -486,7 +486,7 @@ export class SpotifyAuthManager {
       : "/me/player/previous";
     const response = await this.spotifyFetch(path, { method: "POST" });
 
-    if (response.status !== 204) {
+    if (!response.ok) {
       const text = await response.text();
       throw new SpotifyApiError(
         response.status,
@@ -501,7 +501,7 @@ export class SpotifyAuthManager {
     if (deviceId) path += `&device_id=${encodeURIComponent(deviceId)}`;
     const response = await this.spotifyFetch(path, { method: "PUT" });
 
-    if (response.status !== 204) {
+    if (!response.ok) {
       const text = await response.text();
       throw new SpotifyApiError(
         response.status,
