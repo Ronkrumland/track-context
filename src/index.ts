@@ -34,12 +34,17 @@ function parseAllowedCorsOrigins(value: string | undefined): Set<string> {
   for (const origin of [...origins]) {
     try {
       const url = new URL(origin);
-      if (url.hostname === "localhost") {
-        url.hostname = "127.0.0.1";
-        origins.add(url.toString().replace(/\/$/, ""));
-      } else if (url.hostname === "127.0.0.1") {
-        url.hostname = "localhost";
-        origins.add(url.toString().replace(/\/$/, ""));
+      const isLoopback =
+        url.hostname === "localhost" ||
+        url.hostname === "127.0.0.1" ||
+        url.hostname === "[::1]";
+
+      if (isLoopback) {
+        for (const hostname of ["localhost", "127.0.0.1", "[::1]"]) {
+          const alias = new URL(origin);
+          alias.hostname = hostname;
+          origins.add(alias.origin);
+        }
       }
     } catch {
       // Ignore malformed origins so the explicit config check can fail normally.

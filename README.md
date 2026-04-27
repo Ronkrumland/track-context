@@ -6,7 +6,7 @@ Configure allowed CORS origins with a comma-separated `ALLOWED_CORS_ORIGINS`
 value in `.env`, for example:
 
 ```env
-ALLOWED_CORS_ORIGINS=http://127.0.0.1:5173,https://example.com
+ALLOWED_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173,http://[::1]:5173,https://example.com
 ```
 
 For local Spotify OAuth, register this exact redirect URI in the Spotify
