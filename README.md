@@ -44,6 +44,7 @@ Core endpoints:
 - `GET /now-playing`
 - `GET /auth/spotify/login`
 - `GET /auth/spotify/login-url`
+- `GET /auth/spotify/callback` (OAuth redirect target)
 - `GET /display/now-playing`
 - `GET /display/devices`
 - `GET /display/queue`
