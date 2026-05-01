@@ -16,7 +16,7 @@ tokens into frontend code.
 
 ## Current Features
 
-- Bearer-token protected API for all non-health endpoints.
+- Bearer-token protected API for all endpoints except `/health` and `/auth/spotify/callback`.
 - CORS allowlist support for local and deployed clients.
 - Last.fm endpoints for recent tracks and now-playing-or-most-recent context.
 - Spotify OAuth login flow with token refresh and file-backed persistence.
